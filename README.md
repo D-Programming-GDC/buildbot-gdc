@@ -45,8 +45,9 @@ Adding a new worker (local):
     - common/common.env
     - common/secrets.env
   environment:
-    HOSTNAME: <hostname>
     WORKERNAME: <worker name>
+  hostname: <worker host>
+  domainname: <worker domain>
   volumes:
     - /srv/buildbot/cache:/buildbot/cache
   links:
@@ -72,4 +73,8 @@ git clone https://github.com/D-Programming-GDC/buildbot-gdc.git .
 Update files as per adding a new worker (local), except that in docker-compose.yml,
 don't include `links: buildbot`.
 
-Set-up a stunnel to the buildbot master, add `x.x.x.x buildbot` entry to /etc/hosts.
+Set-up a stunnel to the buildbot master, add host to service entry:
+```
+  extra_hosts:
+    buildbot: x.x.x.x
+```
