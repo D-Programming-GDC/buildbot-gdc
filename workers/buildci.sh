@@ -1,9 +1,50 @@
 #!/bin/bash
-# This script is intended to be ran on SemaphoreCI platform.
-# Following environmental variables are assumed to be exported.
+# This script is intended to be ran on SemaphoreCI or GDC Buildbot platform.
+# Following environmental variables are assumed to be exported on SemaphoreCI.
 # - SEMAPHORE_PROJECT_DIR
 # - SEMAPHORE_CACHE_DIR
 # See https://semaphoreci.com/docs/available-environment-variables.html
+#
+# Following environmental variables are assumed to be exported on GDC Buildbot.
+# - PWD
+# - BUILDBOT_CACHE_DIR
+# - BUILDBOT_TARGET
+
+## Commonize CI environment variables.
+if [ "${SEMAPHORE}" = "true" ]; then
+    PROJECT_DIR=${SEMAPHORE_PROJECT_DIR}
+    CACHE_DIR=${SEMAPHORE_CACHE_DIR}
+    BUILD_HOST=$(/usr/share/misc/config.guess)
+    BUILD_TARGET=${BUILD_HOST}
+elif [ "${BUILDBOT}" = "true" ]; then
+    PROJECT_DIR=${PWD}
+    CACHE_DIR=${BUILDBOT_CACHE_DIR}
+    BUILD_HOST=$(/usr/share/misc/config.guess)
+    BUILD_TARGET=${BUILDBOT_TARGET}
+
+    # Tell CI to clean entire build directory before run.
+    touch ${PROJECT_DIR}/.buildbot-patched
+else
+    echo "Unhandled CI environment"
+    exit 1
+fi
+
+## Options determined by target, what steps to skip, or extra flags to add.
+# BUILD_SUPPORTS_PHOBOS:    whether to build phobos and run unittests.
+# BUILD_CONFIGURE_FLAGS:    extra configure flags for the target.
+case ${BUILD_TARGET} in
+    i[34567]86-*-*      \
+  | x86_64-*-*          \
+  | arm*-*-*)
+        BUILD_SUPPORTS_PHOBOS=yes
+        BUILD_CONFIGURE_FLAGS=
+        ;;
+
+    *)
+        BUILD_SUPPORTS_PHOBOS=no
+        BUILD_CONFIGURE_FLAGS=
+        ;;
+esac
 
 ## Find out which branch we are building.
 GCC_VERSION=$(cat gcc.version)
@@ -45,23 +86,6 @@ fi
 
 export CC="gcc-${HOST_PACKAGE}"
 export CXX="g++-${HOST_PACKAGE}"
-
-## Commonize CI environment variables.
-if [ "${SEMAPHORE}" = "true" ]; then
-    PROJECT_DIR=${SEMAPHORE_PROJECT_DIR}
-    CACHE_DIR=${SEMAPHORE_CACHE_DIR}
-    BUILD_TARGET=$(${CC} -print-multiarch)
-elif [ "${BUILDBOT}" = "true" ]; then
-    PROJECT_DIR=${PWD}
-    CACHE_DIR=${BUILDBOT_CACHE_DIR}
-    BUILD_TARGET=${BUILDBOT_TARGET}
-
-    # Tell CI to clean entire build directory before run.
-    touch ${PROJECT_DIR}/.buildbot-patched
-else
-    echo "Unhandled CI environment"
-    exit 1
-fi
 
 installdeps() {
     ## Install build dependencies.
@@ -106,11 +130,12 @@ configure() {
 
     ## Configure GCC to build a D compiler.
     ${PROJECT_DIR}/configure --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --with-sysroot=/ \
-	--enable-languages=c++,d,lto --enable-checking --enable-link-mutex \
-	--disable-bootstrap --disable-werror --disable-libgomp --disable-libmudflap \
+        --enable-languages=c++,d,lto --enable-checking --enable-link-mutex \
+        --disable-bootstrap --disable-werror --disable-libgomp --disable-libmudflap \
         --disable-libquadmath --disable-libitm --disable-libsanitizer --disable-multilib \
-	--target=${BUILD_TARGET} --includedir=/usr/${BUILD_TARGET}/include \
-	--with-bugurl="http://bugzilla.gdcproject.org"
+        --build=${BUILD_HOST} --host=${BUILD_HOST} --target=${BUILD_TARGET} \
+        --includedir=/usr/${BUILD_TARGET}/include ${BUILD_CONFIGURE_FLAGS} \
+        --with-bugurl="http://bugzilla.gdcproject.org"
 }
 
 setup() {
@@ -120,21 +145,14 @@ setup() {
 
 build() {
     ## Build the bare-minimum in order to run tests.
+    cd ${PROJECT_DIR}/build
+    make -j$(nproc) all-gcc || exit 1
+
     # Note: libstdc++ and libphobos are built separately so that build errors don't mix.
-    cd ${PROJECT_DIR}/build
-    make -j$(nproc) all-gcc all-target-libstdc++-v3 || exit 1
-    make -j$(nproc) all-target-libphobos || exit 1
-}
-
-alltests() {
-    ## Run both the unittests and testsuite in parallel.
-    # This takes around 25 minutes to run with -j2, should we add more parallel jobs?
-    cd ${PROJECT_DIR}/build
-    make -j$(nproc) check-d
-
-    ## Print out summaries of testsuite run after finishing.
-    # Just omit testsuite PASSes from file.
-    grep -v "^PASS" ${PROJECT_DIR}/build/gcc/testsuite/gdc*/gdc.sum ||:
+    if [ "${BUILD_SUPPORTS_PHOBOS}" = "yes" ]; then
+        make -j$(nproc) all-target-libstdc++-v3 || exit 1
+        make -j$(nproc) all-target-libphobos || exit 1
+    fi
 }
 
 testsuite() {
@@ -155,10 +173,12 @@ testsuite() {
 
 unittests() {
     ## Run just the library unittests.
-    cd ${PROJECT_DIR}/build
-    if ! make -j$(nproc) check-target-libphobos; then
-        echo "== Unittest has failures =="
-        exit 1
+    if [ "${BUILD_SUPPORTS_PHOBOS}" = "yes" ]; then
+        cd ${PROJECT_DIR}/build
+        if ! make -j$(nproc) check-target-libphobos; then
+            echo "== Unittest has failures =="
+            exit 1
+        fi
     fi
 }
 
@@ -169,5 +189,5 @@ if [ "$1" != "" ]; then
 else
     setup
     build
-    alltests
+    unittests
 fi
