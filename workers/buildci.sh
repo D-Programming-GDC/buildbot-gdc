@@ -34,12 +34,18 @@ fi
 # BUILD_CONFIGURE_FLAGS:    extra configure flags for the target.
 case ${BUILD_TARGET} in
     i[34567]86-*-*      \
-  | x86_64-*-*          \
-  | arm*-*-*)
+  | x86_64-*-*)
         BUILD_SUPPORTS_PHOBOS=yes
         BUILD_CONFIGURE_FLAGS=
         ;;
-
+  arm-*-*eabihf)
+        BUILD_SUPPORTS_PHOBOS=yes
+        BUILD_CONFIGURE_FLAGS='--with-arch=armv7-a --with-fpu=vfpv3-d16 --with-float=hard'
+        ;;
+  arm*-*-*eabi)
+        BUILD_SUPPORTS_PHOBOS=yes
+        BUILD_CONFIGURE_FLAGS='--with-arch=armv5t --with-float=soft'
+        ;;
     *)
         BUILD_SUPPORTS_PHOBOS=no
         BUILD_CONFIGURE_FLAGS=
@@ -51,13 +57,13 @@ if [ "${BUILD_HOST}" = "$(/usr/share/misc/config.sub ${BUILD_TARGET})" ]; then
     BUILD_TEST_FLAGS=''
 else
     case ${BUILD_TARGET} in
-	arm*-*-*)
-	    BUILD_TEST_FLAGS='--target_board=buildbot-arm-sim'
-	    ;;
+        arm*-*-*)
+            BUILD_TEST_FLAGS='--target_board=buildbot-arm-sim'
+            ;;
 
-	*)
-	    BUILD_TEST_FLAGS='--target_board=buildbot-generic-sim'
-	    ;;
+        *)
+            BUILD_TEST_FLAGS='--target_board=buildbot-generic-sim'
+            ;;
     esac
 fi
 
