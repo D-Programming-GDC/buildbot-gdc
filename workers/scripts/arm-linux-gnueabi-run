@@ -1,0 +1,9 @@
+#!/bin/sh
+# If the target board for dejagnu sets needs_status_wrapper, then the
+# testsuite will expect a status message to be outputted by the wrapper,
+# as the return code is ignored.
+qemu-arm-static -L /usr/arm-linux-gnueabi -E LD_LIBRARY_PATH=$LD_LIBRARY_PATH,SHLIB=$SHLIB_PATH $*
+
+ret=$?
+echo "*** EXIT code $ret"
+exit $ret

@@ -14,4 +14,8 @@ RUN bash install-target-deps.sh $TARGET
 
 COPY buildci.sh /buildbot
 
+COPY baseboards/*.exp /usr/share/dejagnu/baseboards/
+COPY config/*.exp /usr/share/dejagnu/config/
+COPY scripts/*-run /usr/local/bin/
+
 USER buildbot

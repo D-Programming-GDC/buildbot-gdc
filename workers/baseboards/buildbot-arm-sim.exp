@@ -1,0 +1,2 @@
+load_base_board_description "arm-sim"
+load_generic_config "buildbot-sim"

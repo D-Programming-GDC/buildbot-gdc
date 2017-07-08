@@ -46,6 +46,21 @@ case ${BUILD_TARGET} in
         ;;
 esac
 
+## Should the testsuite be ran under a simulator?
+if [ "${BUILD_HOST}" = "$(/usr/share/misc/config.sub ${BUILD_TARGET})" ]; then
+    BUILD_TEST_FLAGS=''
+else
+    case ${BUILD_TARGET} in
+	arm*-*-*)
+	    BUILD_TEST_FLAGS='--target_board=buildbot-arm-sim'
+	    ;;
+
+	*)
+	    BUILD_TEST_FLAGS='--target_board=buildbot-generic-sim'
+	    ;;
+    esac
+fi
+
 ## Find out which branch we are building.
 GCC_VERSION=$(cat gcc.version)
 
@@ -158,7 +173,7 @@ build() {
 testsuite() {
     ## Run just the compiler testsuite.
     cd ${PROJECT_DIR}/build
-    make -j$(nproc) check-gcc-d
+    make -j$(nproc) check-gcc-d RUNTESTFLAGS="${BUILD_TEST_FLAGS}"
 
     ## Print out summaries of testsuite run after finishing.
     # Just omit testsuite PASSes from the summary file.
@@ -175,7 +190,7 @@ unittests() {
     ## Run just the library unittests.
     if [ "${BUILD_SUPPORTS_PHOBOS}" = "yes" ]; then
         cd ${PROJECT_DIR}/build
-        if ! make -j$(nproc) check-target-libphobos; then
+        if ! make -j$(nproc) check-target-libphobos RUNTESTFLAGS="${BUILD_TEST_FLAGS}"; then
             echo "== Unittest has failures =="
             exit 1
         fi
