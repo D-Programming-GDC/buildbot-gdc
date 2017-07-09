@@ -12,22 +12,22 @@
 
 ## Commonize CI environment variables.
 if [ "${SEMAPHORE}" = "true" ]; then
-    PROJECT_DIR=${SEMAPHORE_PROJECT_DIR}
-    CACHE_DIR=${SEMAPHORE_CACHE_DIR}
-    BUILD_HOST=$(/usr/share/misc/config.guess)
-    BUILD_HOST_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_HOST})
-    BUILD_TARGET=$(/usr/share/misc/config.guess)
-    BUILD_TARGET_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_TARGET})
+    project_dir=${SEMAPHORE_PROJECT_DIR}
+    cache_dir=${SEMAPHORE_CACHE_DIR}
+    build_host=$(/usr/share/misc/config.guess)
+    build_host_canonical=$(/usr/share/misc/config.sub ${build_host})
+    build_target=$(/usr/share/misc/config.guess)
+    build_target_canonical=$(/usr/share/misc/config.sub ${build_target})
 elif [ "${BUILDBOT}" = "true" ]; then
-    PROJECT_DIR=${PWD}
-    CACHE_DIR=${BUILDBOT_CACHE_DIR}
-    BUILD_HOST=$(/usr/share/misc/config.guess)
-    BUILD_HOST_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_HOST})
-    BUILD_TARGET=${BUILDBOT_TARGET}
-    BUILD_TARGET_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_TARGET})
+    project_dir=${PWD}
+    cache_dir=${BUILDBOT_CACHE_DIR}
+    build_host=$(/usr/share/misc/config.guess)
+    build_host_canonical=$(/usr/share/misc/config.sub ${build_host})
+    build_target=${BUILDBOT_TARGET}
+    build_target_canonical=$(/usr/share/misc/config.sub ${build_target})
 
     # Tell CI to clean entire build directory before run.
-    touch ${PROJECT_DIR}/.buildbot-patched
+    touch ${project_dir}/.buildbot-patched
 else
     echo "Unhandled CI environment"
     exit 1
@@ -35,88 +35,85 @@ fi
 
 ## Options determined by target, what steps to skip, or extra flags to add.
 ## Also, should the testsuite be ran under a simulator?
-# BUILD_SUPPORTS_PHOBOS:    whether to build phobos and run unittests.
-# BUILD_CONFIGURE_FLAGS:    extra configure flags for the target.
-# BUILD_TEST_FLAGS:         options to pass to RUNTESTFLAGS.
-case ${BUILD_TARGET_CANONICAL} in
+# build_supports_phobos:    whether to build phobos and run unittests.
+# build_configure_flags:    extra configure flags for the target.
+# build_test_flags:         options to pass to RUNTESTFLAGS.
+build_supports_phobos=yes
+build_configure_flags=''
+case ${build_target_canonical} in
     i[34567]86-*-*      \
   | x86_64-*-*)
-        BUILD_SUPPORTS_PHOBOS=yes
-        BUILD_CONFIGURE_FLAGS=
-        if [ "${BUILD_HOST_CANONICAL}" != "${BUILD_TARGET_CANONICAL}" ]; then
-            BUILD_TEST_FLAGS='--target_board=buildbot-generic-sim'
+        if [ "${build_host_canonical}" != "${build_target_canonical}" ]; then
+            build_test_flags='--target_board=buildbot-generic-sim'
         fi
         ;;
   arm-*-*eabihf)
-        BUILD_SUPPORTS_PHOBOS=yes
-        BUILD_CONFIGURE_FLAGS='--with-arch=armv7-a --with-fpu=vfpv3-d16 --with-float=hard'
+        build_configure_flags='--with-arch=armv7-a --with-fpu=vfpv3-d16 --with-float=hard'
         ;;
   arm*-*-*eabi)
-        BUILD_SUPPORTS_PHOBOS=yes
-        BUILD_CONFIGURE_FLAGS='--with-arch=armv5t --with-float=soft'
+        build_configure_flags='--with-arch=armv5t --with-float=soft'
         ;;
     *)
-        BUILD_SUPPORTS_PHOBOS=no
-        BUILD_CONFIGURE_FLAGS=
+        build_supports_phobos=no
         ;;
 esac
 
-BUILD_TEST_FLAGS=''
-if [ "${BUILD_HOST_CANONICAL}" != "${BUILD_TARGET_CANONICAL}" ]; then
+build_test_flags=''
+if [ "${build_host_canonical}" != "${build_target_canonical}" ]; then
     # Building a cross compiler, need to explicitly say where to find native headers.
-    BUILD_CONFIGURE_FLAGS="${BUILD_CONFIGURE_FLAGS} --with-native-system-header-dir=/usr/${BUILD_TARGET}/include"
+    build_configure_flags="${build_configure_flags} --with-native-system-header-dir=/usr/${build_target}/include"
 
-    case ${BUILD_TARGET_CANONICAL} in
+    case ${build_target_canonical} in
         arm*-*-*)
-            BUILD_TEST_FLAGS='--target_board=buildbot-arm-sim'
+            build_test_flags='--target_board=buildbot-arm-sim'
             ;;
 
         *)
-            BUILD_TEST_FLAGS='--target_board=buildbot-generic-sim'
+            build_test_flags='--target_board=buildbot-generic-sim'
             ;;
     esac
 fi
 
 ## Find out which branch we are building.
-GCC_VERSION=$(cat gcc.version)
+gcc_version=$(cat gcc.version)
 
-if [ "${GCC_VERSION:0:5}" = "gcc-8" ]; then
-    GCC_TARBALL="snapshots/${GCC_VERSION:4}/${GCC_VERSION}.tar.xz"
-    GCC_PREREQS="gmp-6.1.0.tar.bz2 mpfr-3.1.4.tar.bz2 mpc-1.0.3.tar.gz isl-0.16.1.tar.bz2"
-    PATCH_VERSION="8"
-    HOST_PACKAGE="5"
-elif [ "${GCC_VERSION:0:5}" = "gcc-7" ]; then
-    GCC_TARBALL="releases/${GCC_VERSION}/${GCC_VERSION}.tar.bz2"
-    GCC_PREREQS="gmp-6.1.0.tar.bz2 mpfr-3.1.4.tar.bz2 mpc-1.0.3.tar.gz isl-0.16.1.tar.bz2"
-    PATCH_VERSION="7"
-    HOST_PACKAGE="5"
-elif [ "${GCC_VERSION:0:5}" = "gcc-6" ]; then
-    GCC_TARBALL="releases/${GCC_VERSION}/${GCC_VERSION}.tar.bz2"
-    GCC_PREREQS="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.15.tar.bz2"
-    PATCH_VERSION="6"
-    HOST_PACKAGE="5"
-elif [ "${GCC_VERSION:0:5}" = "gcc-5" ]; then
-    GCC_TARBALL="releases/${GCC_VERSION}/${GCC_VERSION}.tar.bz2"
-    GCC_PREREQS="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.14.tar.bz2"
-    PATCH_VERSION="5"
-    HOST_PACKAGE="5"
-elif [ "${GCC_VERSION:0:7}" = "gcc-4.9" ]; then
-    GCC_TARBALL="releases/${GCC_VERSION}/${GCC_VERSION}.tar.bz2"
-    GCC_PREREQS="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.12.2.tar.bz2 cloog-0.18.1.tar.gz"
-    PATCH_VERSION="4.9"
-    HOST_PACKAGE="4.9"
-elif [ "${GCC_VERSION:0:7}" = "gcc-4.8" ]; then
-    GCC_TARBALL="releases/${GCC_VERSION}/${GCC_VERSION}.tar.bz2"
-    GCC_PREREQS="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz"
-    PATCH_VERSION="4.8"
-    HOST_PACKAGE="4.8"
+if [ "${gcc_version:0:5}" = "gcc-8" ]; then
+    gcc_tarball="snapshots/${gcc_version:4}/${gcc_version}.tar.xz"
+    gcc_prereqs="gmp-6.1.0.tar.bz2 mpfr-3.1.4.tar.bz2 mpc-1.0.3.tar.gz isl-0.16.1.tar.bz2"
+    patch_version="8"
+    host_package="5"
+elif [ "${gcc_version:0:5}" = "gcc-7" ]; then
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_prereqs="gmp-6.1.0.tar.bz2 mpfr-3.1.4.tar.bz2 mpc-1.0.3.tar.gz isl-0.16.1.tar.bz2"
+    patch_version="7"
+    host_package="5"
+elif [ "${gcc_version:0:5}" = "gcc-6" ]; then
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_prereqs="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.15.tar.bz2"
+    patch_version="6"
+    host_package="5"
+elif [ "${gcc_version:0:5}" = "gcc-5" ]; then
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_prereqs="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.14.tar.bz2"
+    patch_version="5"
+    host_package="5"
+elif [ "${gcc_version:0:7}" = "gcc-4.9" ]; then
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_prereqs="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.12.2.tar.bz2 cloog-0.18.1.tar.gz"
+    patch_version="4.9"
+    host_package="4.9"
+elif [ "${gcc_version:0:7}" = "gcc-4.8" ]; then
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_prereqs="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz"
+    patch_version="4.8"
+    host_package="4.8"
 else
-    echo "This version of GCC ($GCC_VERSION) is not supported."
+    echo "This version of GCC ($gcc_version) is not supported."
     exit 1
 fi
 
-export CC="gcc-${HOST_PACKAGE}"
-export CXX="g++-${HOST_PACKAGE}"
+export CC="gcc-${host_package}"
+export CXX="g++-${host_package}"
 
 installdeps() {
     ## Install build dependencies.
@@ -124,48 +121,48 @@ installdeps() {
     # But the network speed is nothing to complain about so far...
     sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     sudo apt-get update -qq
-    sudo apt-get install -qq gcc-${HOST_PACKAGE} g++-${HOST_PACKAGE} \
+    sudo apt-get install -qq gcc-${host_package} g++-${host_package} \
         autogen autoconf2.64 automake1.11 bison dejagnu flex patch || exit 1
 }
 
 configure() {
     ## Download and extract GCC sources.
     # Makes use of local cache to save downloading on every build run.
-    if [ ! -e ${CACHE_DIR}/${GCC_TARBALL} ]; then
-        curl "ftp://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/${GCC_TARBALL}" \
-            --create-dirs -o ${CACHE_DIR}/${GCC_TARBALL} || exit 1
+    if [ ! -e ${cache_dir}/${gcc_tarball} ]; then
+        curl "ftp://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/${gcc_tarball}" \
+            --create-dirs -o ${cache_dir}/${gcc_tarball} || exit 1
     fi
 
-    tar --strip-components=1 -xf ${CACHE_DIR}/${GCC_TARBALL}
+    tar --strip-components=1 -xf ${cache_dir}/${gcc_tarball}
 
     ## Apply GDC patches to GCC.
-    for PATCH in toplev gcc targetdm; do
-        patch -p1 -i ./gcc/d/patches/patch-${PATCH}-${PATCH_VERSION}.x || exit 1
+    for patch_name in toplev gcc targetdm; do
+        patch -p1 -i ./gcc/d/patches/patch-${patch_name}-${patch_version}.x || exit 1
     done
 
     ## And download GCC prerequisites.
     # Makes use of local cache to save downloading on every build run.
-    for PREREQ in ${GCC_PREREQS}; do
-        if [ ! -e ${CACHE_DIR}/infrastructure/${PREREQ} ]; then
-            curl "ftp://gcc.gnu.org/pub/gcc/infrastructure/${PREREQ}" \
-                --create-dirs -o ${CACHE_DIR}/infrastructure/${PREREQ} || exit 1
+    for prereq in ${gcc_prereqs}; do
+        if [ ! -e ${cache_dir}/infrastructure/${prereq} ]; then
+            curl "ftp://gcc.gnu.org/pub/gcc/infrastructure/${prereq}" \
+                --create-dirs -o ${cache_dir}/infrastructure/${prereq} || exit 1
         fi
-        tar -xf ${CACHE_DIR}/infrastructure/${PREREQ}
-        ln -s "${PREREQ%.tar*}" "${PREREQ%-*}"
+        tar -xf ${cache_dir}/infrastructure/${prereq}
+        ln -s "${prereq%.tar*}" "${prereq%-*}"
     done
 
     ## Create the build directory.
     # Build typically takes around 10 minutes with -j4, could this be cached across CI runs?
-    mkdir ${PROJECT_DIR}/build
-    cd ${PROJECT_DIR}/build
+    mkdir ${project_dir}/build
+    cd ${project_dir}/build
 
     ## Configure GCC to build a D compiler.
-    ${PROJECT_DIR}/configure --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --with-sysroot=/ \
+    ${project_dir}/configure --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --with-sysroot=/ \
         --enable-languages=c++,d,lto --enable-checking --enable-link-mutex \
         --disable-bootstrap --disable-werror --disable-libgomp --disable-libmudflap \
         --disable-libquadmath --disable-libitm --disable-libsanitizer --disable-multilib \
-        --build=${BUILD_HOST} --host=${BUILD_HOST} --target=${BUILD_TARGET} \
-        ${BUILD_CONFIGURE_FLAGS} --with-bugurl="http://bugzilla.gdcproject.org"
+        --build=${build_host} --host=${build_host} --target=${build_target} \
+        ${build_configure_flags} --with-bugurl="http://bugzilla.gdcproject.org"
 }
 
 setup() {
@@ -175,11 +172,11 @@ setup() {
 
 build() {
     ## Build the bare-minimum in order to run tests.
-    cd ${PROJECT_DIR}/build
+    cd ${project_dir}/build
     make -j$(nproc) all-gcc || exit 1
 
     # Note: libstdc++ and libphobos are built separately so that build errors don't mix.
-    if [ "${BUILD_SUPPORTS_PHOBOS}" = "yes" ]; then
+    if [ "${build_supports_phobos}" = "yes" ]; then
         make -j$(nproc) all-target-libstdc++-v3 || exit 1
         make -j$(nproc) all-target-libphobos || exit 1
     fi
@@ -187,15 +184,15 @@ build() {
 
 testsuite() {
     ## Run just the compiler testsuite.
-    cd ${PROJECT_DIR}/build
-    make -j$(nproc) check-gcc-d RUNTESTFLAGS="${BUILD_TEST_FLAGS}"
+    cd ${project_dir}/build
+    make -j$(nproc) check-gcc-d RUNTESTFLAGS="${build_test_flags}"
 
     ## Print out summaries of testsuite run after finishing.
     # Just omit testsuite PASSes from the summary file.
-    grep -v "^PASS" ${PROJECT_DIR}/build/gcc/testsuite/gdc*/gdc.sum ||:
+    grep -v "^PASS" ${project_dir}/build/gcc/testsuite/gdc*/gdc.sum ||:
 
     # Test for any failures and return false if any.
-    if grep -q "^\(FAIL\|UNRESOLVED\)" ${PROJECT_DIR}/build/gcc/testsuite/gdc*/gdc.sum; then
+    if grep -q "^\(FAIL\|UNRESOLVED\)" ${project_dir}/build/gcc/testsuite/gdc*/gdc.sum; then
        echo "== Testsuite has failures =="
        exit 1
     fi
@@ -203,9 +200,9 @@ testsuite() {
 
 unittests() {
     ## Run just the library unittests.
-    if [ "${BUILD_SUPPORTS_PHOBOS}" = "yes" ]; then
-        cd ${PROJECT_DIR}/build
-        if ! make -j$(nproc) check-target-libphobos RUNTESTFLAGS="${BUILD_TEST_FLAGS}"; then
+    if [ "${build_supports_phobos}" = "yes" ]; then
+        cd ${project_dir}/build
+        if ! make -j$(nproc) check-target-libphobos RUNTESTFLAGS="${build_test_flags}"; then
             echo "== Unittest has failures =="
             exit 1
         fi
