@@ -63,6 +63,9 @@ if [ "${build_host_canonical}" != "${build_target_canonical}" ]; then
     # Building a cross compiler, need to explicitly say where to find native headers.
     build_configure_flags="${build_configure_flags} --with-native-system-header-dir=/usr/${build_target}/include"
 
+    # Note: setting target board to something other than "generic" only makes
+    # sense if phobos is being built. Without phobos, all runnable tests will
+    # all fail as being 'UNRESOLVED', and so are never ran anyway.
     case ${build_target_canonical} in
         arm*-*-*)
             build_test_flags='--target_board=buildbot-arm-sim'
@@ -187,12 +190,22 @@ testsuite() {
     cd ${project_dir}/build
     make -j$(nproc) check-gcc-d RUNTESTFLAGS="${build_test_flags}"
 
+    # For now, be lenient towards targets with no phobos support,
+    # and ignore unresolved test failures.
+    if [ "${build_supports_phobos}" = "yes" ]; then
+        print_filter="^PASS"
+        fail_filter="^\(FAIL\|UNRESOLVED\)"
+    else
+        print_filter="^\(PASS\|UNRESOLVED\)"
+        fail_filter="^FAIL"
+    fi
+
     ## Print out summaries of testsuite run after finishing.
     # Just omit testsuite PASSes from the summary file.
-    grep -v "^PASS" ${project_dir}/build/gcc/testsuite/gdc*/gdc.sum ||:
+    grep -v ${print_filter} ${project_dir}/build/gcc/testsuite/gdc*/gdc.sum ||:
 
     # Test for any failures and return false if any.
-    if grep -q "^\(FAIL\|UNRESOLVED\)" ${project_dir}/build/gcc/testsuite/gdc*/gdc.sum; then
+    if grep -q ${fail_filter} ${project_dir}/build/gcc/testsuite/gdc*/gdc.sum; then
        echo "== Testsuite has failures =="
        exit 1
     fi
