@@ -15,12 +15,16 @@ if [ "${SEMAPHORE}" = "true" ]; then
     PROJECT_DIR=${SEMAPHORE_PROJECT_DIR}
     CACHE_DIR=${SEMAPHORE_CACHE_DIR}
     BUILD_HOST=$(/usr/share/misc/config.guess)
-    BUILD_TARGET=${BUILD_HOST}
+    BUILD_HOST_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_HOST})
+    BUILD_TARGET=$(/usr/share/misc/config.guess)
+    BUILD_TARGET_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_TARGET})
 elif [ "${BUILDBOT}" = "true" ]; then
     PROJECT_DIR=${PWD}
     CACHE_DIR=${BUILDBOT_CACHE_DIR}
     BUILD_HOST=$(/usr/share/misc/config.guess)
+    BUILD_HOST_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_HOST})
     BUILD_TARGET=${BUILDBOT_TARGET}
+    BUILD_TARGET_CANONICAL=$(/usr/share/misc/config.sub ${BUILD_TARGET})
 
     # Tell CI to clean entire build directory before run.
     touch ${PROJECT_DIR}/.buildbot-patched
@@ -30,13 +34,18 @@ else
 fi
 
 ## Options determined by target, what steps to skip, or extra flags to add.
+## Also, should the testsuite be ran under a simulator?
 # BUILD_SUPPORTS_PHOBOS:    whether to build phobos and run unittests.
 # BUILD_CONFIGURE_FLAGS:    extra configure flags for the target.
-case ${BUILD_TARGET} in
+# BUILD_TEST_FLAGS:         options to pass to RUNTESTFLAGS.
+case ${BUILD_TARGET_CANONICAL} in
     i[34567]86-*-*      \
   | x86_64-*-*)
         BUILD_SUPPORTS_PHOBOS=yes
         BUILD_CONFIGURE_FLAGS=
+        if [ "${BUILD_HOST_CANONICAL}" != "${BUILD_TARGET_CANONICAL}" ]; then
+            BUILD_TEST_FLAGS='--target_board=buildbot-generic-sim'
+        fi
         ;;
   arm-*-*eabihf)
         BUILD_SUPPORTS_PHOBOS=yes
@@ -52,11 +61,12 @@ case ${BUILD_TARGET} in
         ;;
 esac
 
-## Should the testsuite be ran under a simulator?
-if [ "${BUILD_HOST}" = "$(/usr/share/misc/config.sub ${BUILD_TARGET})" ]; then
-    BUILD_TEST_FLAGS=''
-else
-    case ${BUILD_TARGET} in
+BUILD_TEST_FLAGS=''
+if [ "${BUILD_HOST_CANONICAL}" != "${BUILD_TARGET_CANONICAL}" ]; then
+    # Building a cross compiler, need to explicitly say where to find native headers.
+    BUILD_CONFIGURE_FLAGS="${BUILD_CONFIGURE_FLAGS} --with-native-system-header-dir=/usr/${BUILD_TARGET}/include"
+
+    case ${BUILD_TARGET_CANONICAL} in
         arm*-*-*)
             BUILD_TEST_FLAGS='--target_board=buildbot-arm-sim'
             ;;
@@ -155,8 +165,7 @@ configure() {
         --disable-bootstrap --disable-werror --disable-libgomp --disable-libmudflap \
         --disable-libquadmath --disable-libitm --disable-libsanitizer --disable-multilib \
         --build=${BUILD_HOST} --host=${BUILD_HOST} --target=${BUILD_TARGET} \
-        --includedir=/usr/${BUILD_TARGET}/include ${BUILD_CONFIGURE_FLAGS} \
-        --with-bugurl="http://bugzilla.gdcproject.org"
+        ${BUILD_CONFIGURE_FLAGS} --with-bugurl="http://bugzilla.gdcproject.org"
 }
 
 setup() {
