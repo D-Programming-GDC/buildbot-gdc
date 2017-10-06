@@ -1,4 +1,4 @@
-FROM  buildbot/buildbot-master:v0.9.9.post1
+FROM  buildbot/buildbot-master:v0.9.12
 
 RUN pip install requests && \
     pip install buildbot-grid-view
