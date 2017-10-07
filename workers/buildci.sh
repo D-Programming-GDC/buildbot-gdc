@@ -1,15 +1,18 @@
 #!/bin/bash
 # This script is intended to be ran on SemaphoreCI or GDC Buildbot platform.
 # Following environmental variables are assumed to be exported on SemaphoreCI.
+#
 # - SEMAPHORE_PROJECT_DIR
 # - SEMAPHORE_CACHE_DIR
+#
 # See https://semaphoreci.com/docs/available-environment-variables.html
 #
 # Following environmental variables are assumed to be exported on GDC Buildbot.
+#
 # - PWD
 # - BUILDBOT_CACHE_DIR
 # - BUILDBOT_TARGET
-
+#
 ## Commonize CI environment variables.
 if [ "${SEMAPHORE}" = "true" ]; then
     project_dir=${SEMAPHORE_PROJECT_DIR}
@@ -35,10 +38,15 @@ fi
 
 ## Options determined by target, what steps to skip, or extra flags to add.
 ## Also, should the testsuite be ran under a simulator?
+#
 # build_supports_phobos:    whether to build phobos and run unittests.
+# build_enable_languages:   which languages to build, this affects whether C++
+#                           or LTO tests are ran in the testsuite.
 # build_configure_flags:    extra configure flags for the target.
 # build_test_flags:         options to pass to RUNTESTFLAGS.
-build_supports_phobos=yes
+#
+build_supports_phobos='yes'
+build_enable_languages='c++,d,lto'
 build_configure_flags=''
 case ${build_target_canonical} in
     i[34567]86-*-*      \
@@ -54,7 +62,8 @@ case ${build_target_canonical} in
         build_configure_flags='--with-arch=armv5t --with-float=soft'
         ;;
     *)
-        build_supports_phobos=no
+        build_supports_phobos='no'
+        build_enable_languages='c++,d --disable-lto'
         ;;
 esac
 
@@ -161,7 +170,7 @@ configure() {
 
     ## Configure GCC to build a D compiler.
     ${project_dir}/configure --prefix=/usr --libdir=/usr/lib --libexecdir=/usr/lib --with-sysroot=/ \
-        --enable-languages=c++,d,lto --enable-checking --enable-link-mutex \
+        --enable-languages=${build_enable_languages} --enable-checking --enable-link-mutex \
         --disable-bootstrap --disable-werror --disable-libgomp --disable-libmudflap \
         --disable-libquadmath --disable-libitm --disable-libsanitizer --disable-multilib \
         --build=${build_host} --host=${build_host} --target=${build_target} \
