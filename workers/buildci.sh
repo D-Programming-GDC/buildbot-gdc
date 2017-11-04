@@ -149,7 +149,7 @@ configure() {
 
     ## Apply GDC patches to GCC.
     for patch_name in toplev gcc targetdm; do
-        patch -p1 -i ./gcc/d/patches/patch-${patch_name}-${patch_version}.x || exit 1
+        patch -p1 -i ./gcc/d/patches/patch-${patch_name}-${patch_version}.patch || exit 1
     done
 
     ## And download GCC prerequisites.
