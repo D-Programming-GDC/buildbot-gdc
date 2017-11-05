@@ -3,3 +3,4 @@ cache/releases/
 cache/snapshots/
 common/secrets.env
 master/db.env
+.buildbot-patched
