@@ -61,6 +61,15 @@ case ${build_target_canonical} in
   arm*-*-*eabi)
         build_configure_flags='--with-arch=armv5t --with-float=soft'
         ;;
+  mips-*-*|mipsel-*-*)
+        build_configure_flags='--with-arch=mips32r2'
+        ;;
+  mips64*-*-*)
+        build_configure_flags='--with-arch-64=mips64r2 --with-abi=64'
+        ;;
+  powerpc64*-*-*)
+        build_configure_flags='--with-cpu=power7'
+        ;;
     *)
         build_supports_phobos='no'
         build_enable_languages='c++,d --disable-lto'
