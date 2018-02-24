@@ -1,6 +1,6 @@
-FROM  buildbot/buildbot-master:v0.9.13
+FROM  buildbot/buildbot-master:v1.0.0
 
 RUN pip install requests && \
-    pip install buildbot-grid-view==0.9.13
+    pip install buildbot-grid-view==v1.0.0
 
 COPY master.cfg /var/lib/buildbot
