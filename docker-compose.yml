@@ -16,7 +16,7 @@ services:
     hostname: buildbot
     domainname: dgnu.org
     ports:
-      - "8082:8082"
+      - "127.0.0.1:8082:8082"
 
   worker-cross:
     build:
