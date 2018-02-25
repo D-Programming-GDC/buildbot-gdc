@@ -18,7 +18,7 @@ BUILDMASTER_CLIENT_ID=github_client_id          # Same.
 BUILDMASTER_CLIENT_SECRET=github_client_secret  # Same.
 EOF
 
-docker-compose up -d buildbot
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d buildbot
 ```
 
 Updating the master:
@@ -27,7 +27,7 @@ Updating the master:
 cd /srv/buildbot/
 docker-compose stop buildbot
 git pull
-docker-compose up --build -d buildbot
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d buildbot
 ```
 
 
@@ -77,4 +77,12 @@ Set-up a stunnel to the buildbot master, add host to service entry:
 ```
   extra_hosts:
     buildbot: x.x.x.x
+```
+
+Testing buildbot locally:
+----------------------------------
+Create all environment files as per setting up master, but use the testing configuration instead
+to build the container.
+```
+docker-compose -f docker-compose.yml -f docker-compose.testing.yml up
 ```
