@@ -1,0 +1,16 @@
+# Overrides the base docker-compose config by adding a environmental settings
+# and volumes only necessary for use on the live instances.
+version: '2'
+services:
+  buildbot:
+    environment:
+      HOSTNAME: buildbot.dgnu.org
+      BUILDBOT_WEB_URL: https://buildbot.dgnu.org/
+    hostname: buildbot
+    domainname: dgnu.org
+
+  worker-cross:
+    hostname: worker1
+    domainname: dgnu.org
+    volumes:
+      - /srv/buildbot/cache:/buildbot/cache

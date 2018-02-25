@@ -1,0 +1,18 @@
+# Overrides the base docker-compose config by adding a database for local testing.
+# To use, set `POSTGRES_HOST=buildbot-testdb` in db.env.
+version: '2'
+services:
+  buildbot:
+    environment:
+      BUILDBOT_WEB_URL: http://127.0.0.1:8082/
+    links:
+      - buildbot-testdb
+    depends_on:
+      - buildbot-testdb
+
+  buildbot-testdb:
+    env_file:
+      - master/db.env
+    image: postgres:10-alpine
+    expose:
+      - 5432
