@@ -6,6 +6,7 @@ services:
     environment:
       HOSTNAME: buildbot.dgnu.org
       BUILDBOT_WEB_URL: https://buildbot.dgnu.org/
+      GITHUB_OAUTH: 'true'
     hostname: buildbot
     domainname: dgnu.org
 

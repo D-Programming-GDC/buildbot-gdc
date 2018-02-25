@@ -4,7 +4,7 @@ version: '2'
 services:
   buildbot:
     environment:
-      BUILDBOT_WEB_URL: http://127.0.0.1:8082/
+      BUILDBOT_WEB_URL: http://127.0.0.1:{BUILDBOT_WEB_PORT}/
     links:
       - buildbot-testdb
     depends_on:
