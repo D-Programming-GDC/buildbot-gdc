@@ -17,6 +17,17 @@ services:
     domainname: dgnu.org
     ports:
       - "127.0.0.1:8082:8082"
+    links:
+      - buildbot-testdb
+    depends_on:
+      - buildbot-testdb
+
+  buildbot-testdb:
+    env_file:
+      - master/db.env
+    image: "postgres:10-alpine"
+    expose:
+      - 5432
 
   worker-cross:
     build:
