@@ -2,17 +2,17 @@ version: '2'
 services:
   buildbot:
     build:
-        context: master
+      context: master
     env_file:
-        - common/common.env
-        - common/secrets.env
-        - master/db.env
+      - common/common.env
+      - common/secrets.env
+      - master/db.env
     environment:
-        HOSTNAME: buildbot.gdcproject.org
-        BUILDBOT_DB_URL: postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}
-        BUILDBOT_CONFIG_DIR: config
-        BUILDBOT_WEB_URL: https://buildbot.dgnu.org/
-        BUILDBOT_WEB_PORT: 8082
+      HOSTNAME: buildbot.gdcproject.org
+      BUILDBOT_DB_URL: postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}
+      BUILDBOT_CONFIG_DIR: config
+      BUILDBOT_WEB_URL: https://buildbot.dgnu.org/
+      BUILDBOT_WEB_PORT: 8082
     hostname: buildbot
     domainname: dgnu.org
     ports:
@@ -20,17 +20,17 @@ services:
 
   worker-cross:
     build:
-        context: workers
-        args:
-            TARGET: all-linux-gnu
+      context: workers
+      args:
+        TARGET: all-linux-gnu
     env_file:
-        - common/common.env
-        - common/secrets.env
+      - common/common.env
+      - common/secrets.env
     environment:
-        WORKERNAME: gdc-ubuntu-cross
+      WORKERNAME: gdc-ubuntu-cross
     hostname: worker1
     domainname: dgnu.org
     volumes:
-        - /srv/buildbot/cache:/buildbot/cache
+      - /srv/buildbot/cache:/buildbot/cache
     links:
-        - buildbot
+      - buildbot
