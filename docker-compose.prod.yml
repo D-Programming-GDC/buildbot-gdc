@@ -9,6 +9,8 @@ services:
       GITHUB_OAUTH: 'true'
     hostname: buildbot
     domainname: dgnu.org
+    ports:
+      - 9989:9989
 
   worker-cross:
     hostname: worker1
