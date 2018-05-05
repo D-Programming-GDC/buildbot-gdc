@@ -1,4 +1,4 @@
-FROM buildbot/buildbot-worker:v1.0.0
+FROM buildbot/buildbot-worker:v1.1.1
 
 ENV DOCKER_GCC_VERSION 5
 
