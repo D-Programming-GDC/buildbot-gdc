@@ -26,5 +26,3 @@ services:
       - common/secrets.env
     environment:
       WORKERNAME: gdc-ubuntu-cross
-    links:
-      - buildbot
