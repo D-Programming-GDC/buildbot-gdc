@@ -13,6 +13,12 @@ services:
       - 9989:9989
 
   worker-cross:
+    build:
+      args:
+        - http_proxy
+        - https_proxy
+    env_file:
+      - workers/overrides.env
     hostname: worker1
     domainname: dgnu.org
     volumes:
