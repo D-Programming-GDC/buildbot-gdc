@@ -98,23 +98,28 @@ fi
 ## Find out which branch we are building.
 gcc_version=$(cat gcc.version)
 
-if [ "${gcc_version:0:5}" = "gcc-8" ]; then
+if [ "${gcc_version:0:5}" = "gcc-9" ]; then
     gcc_tarball="snapshots/${gcc_version:4}/${gcc_version}.tar.xz"
+    gcc_prereqs="gmp-6.1.0.tar.bz2 mpfr-3.1.4.tar.bz2 mpc-1.0.3.tar.gz isl-0.16.1.tar.bz2"
+    patch_version="9"
+    host_package="5"
+elif [ "${gcc_version:0:5}" = "gcc-8" ]; then
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.xz"
     gcc_prereqs="gmp-6.1.0.tar.bz2 mpfr-3.1.4.tar.bz2 mpc-1.0.3.tar.gz isl-0.16.1.tar.bz2"
     patch_version="8"
     host_package="5"
 elif [ "${gcc_version:0:5}" = "gcc-7" ]; then
-    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.xz"
     gcc_prereqs="gmp-6.1.0.tar.bz2 mpfr-3.1.4.tar.bz2 mpc-1.0.3.tar.gz isl-0.16.1.tar.bz2"
     patch_version="7"
     host_package="5"
 elif [ "${gcc_version:0:5}" = "gcc-6" ]; then
-    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.xz"
     gcc_prereqs="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.15.tar.bz2"
     patch_version="6"
     host_package="5"
 elif [ "${gcc_version:0:5}" = "gcc-5" ]; then
-    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.bz2"
+    gcc_tarball="releases/${gcc_version}/${gcc_version}.tar.xz"
     gcc_prereqs="gmp-4.3.2.tar.bz2 mpfr-2.4.2.tar.bz2 mpc-0.8.1.tar.gz isl-0.14.tar.bz2"
     patch_version="5"
     host_package="5"
@@ -135,6 +140,7 @@ fi
 
 export CC="gcc-${host_package}"
 export CXX="g++-${host_package}"
+export GDC="gdc-${host_package}"
 
 installdeps() {
     ## Install build dependencies.
@@ -142,7 +148,7 @@ installdeps() {
     # But the network speed is nothing to complain about so far...
     sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     sudo apt-get update -qq
-    sudo apt-get install -qq gcc-${host_package} g++-${host_package} \
+    sudo apt-get install -qq gcc-${host_package} g++-${host_package} gdc-${host_package} \
         autogen autoconf2.64 automake1.11 bison dejagnu flex patch || exit 1
 }
 
