@@ -24,5 +24,3 @@ services:
     env_file:
       - common/common.env
       - common/secrets.env
-    environment:
-      WORKERNAME: gdc-ubuntu-cross

@@ -18,5 +18,7 @@ services:
       - 5432
 
   worker-cross:
+    environment:
+      WORKERNAME: gdc-ubuntu-cross
     links:
       - buildbot
