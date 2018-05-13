@@ -1,6 +1,6 @@
 FROM buildbot/buildbot-worker:v1.1.1
 
-ENV DOCKER_GCC_VERSION 5
+ENV DOCKER_GCC_VERSION 7
 
 # The target that the worker will build for.
 ARG TARGET
