@@ -10,7 +10,7 @@
 #  libc_packages        List of all libc-related packages to install.
 
 target=${1}
-install_packages="gcc-${DOCKER_GCC_VERSION} g++-${DOCKER_GCC_VERSION} \
+install_packages="gcc-${DOCKER_GCC_VERSION} g++-${DOCKER_GCC_VERSION} gdc-${DOCKER_GCC_VERSION} \
     autogen autoconf2.64 automake1.11 bison dejagnu flex patch"
 binutils_packages="binutils"
 libc_packages="libc6-dev"
