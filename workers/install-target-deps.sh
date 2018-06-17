@@ -11,7 +11,7 @@
 
 target=${1}
 install_packages="gcc-${DOCKER_GCC_VERSION} g++-${DOCKER_GCC_VERSION} \
-    autogen autoconf2.64 automake1.11 bison dejagnu flex patch qemu-user-static"
+    autogen autoconf2.64 automake1.11 bison dejagnu flex patch"
 binutils_packages="binutils"
 libc_packages="libc6-dev"
 
