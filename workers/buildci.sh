@@ -163,8 +163,10 @@ configure() {
     tar --strip-components=1 -xf ${cache_dir}/${gcc_tarball}
 
     ## Apply GDC patches to GCC.
-    for patch_name in toplev gcc targetdm; do
-        patch -p1 -i ./gcc/d/patches/patch-${patch_name}-${patch_version}.patch || exit 1
+    for patch_name in toplev toplev-ddmd gcc gcc-ddmd targetdm; do
+        if [ -e ./gcc/d/patches/patch-${patch_name}-${patch_version}.patch ]; then
+            patch -p1 -i ./gcc/d/patches/patch-${patch_name}-${patch_version}.patch || exit 1
+        fi
     done
 
     ## And download GCC prerequisites.
